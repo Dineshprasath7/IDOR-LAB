@@ -1,14 +1,14 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const cors=require("cors");
+const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const User = require("./model/User");
 const app = express();
 
 app.use(cookieParser());
 app.use(cors({
-  origin:true,
-  credentials:true
+  origin: true,
+  credentials: true
 }));
 
 app.use(express.json());
@@ -25,7 +25,7 @@ let users = [
   { id: 5007, name: "Fiona Blue", phn_num: "6666666666", clg: "PQR University", country: "Japan", role_id: "admin", role: "Admin" },
   { id: 5008, name: "George Yellow", phn_num: "7777777777", clg: "STU College", country: "South Korea", role_id: "teacher", role: "Teacher" },
   { id: 5009, name: "Hannah Red", phn_num: "8888888888", clg: "VWX University", country: "Italy", role_id: "student", role: "Student" },
-  { id: 5010, name: "Axios", phn_num: "111111111", clg: "PSG college of Technology", country: "India", role_id: "staff", role: "BreakPoint{o012_f0r3ns1cs_d5n3}" },
+  { id: 5010, name: "Axios", phn_num: "111111111", clg: "PSG college of Technology", country: "India", role_id: "staff", role: "BreachPoint{o012_1d3rc7_d5n3}" },
   { id: 5011, name: "Julia Brown", phn_num: "1010101010", clg: "XYZ College", country: "Brazil", role_id: "admin", role: "Admin" },
   { id: 5012, name: "Kevin Black", phn_num: "2020202020", clg: "Tech Institute", country: "Netherlands", role_id: "student", role: "Student" },
   { id: 5013, name: "Laura White", phn_num: "3030303030", clg: "DEF University", country: "Norway", role_id: "teacher", role: "Teacher" },
@@ -37,12 +37,8 @@ let users = [
   { id: 5019, name: "Rachel Gold", phn_num: "9090909090", clg: "VWX University", country: "South Africa", role_id: "student", role: "Student" }
 ];
 
-
-const getdetails=(id)=>{
-  const user=users.find((user,index,arr)=>{
-    return user.id === id
-  })
-  return user
+const getdetails = (id) => {
+  return users.find((user) => user.id === id);
 }
 
 let currentId = 5000;
@@ -58,11 +54,20 @@ const getUniqueId = () => {
 };
 
 
+const base64Encode = (text) => {
+  return Buffer.from(text).toString('base64');
+}
+
+const base64Decode = (text) => {
+  return Buffer.from(text, 'base64').toString('utf-8');
+}
+
+
 app.post("/api/details", (req, res) => {
   const { name, phn_num, clg, country, role_id, role } = req.body;
 
   if (!name || !phn_num || !clg || !role_id || !country || !role) {
-    return res.status(400).send({message: "All fields are required."});
+    return res.status(400).send({ message: "All fields are required." });
   }
 
   const newUser = new User(
@@ -76,29 +81,39 @@ app.post("/api/details", (req, res) => {
   );
 
   users.push(newUser);
-  res.cookie("id",newUser.id,{
+
+  const encodedId = base64Encode(String(newUser.id));
+
+  res.cookie("id", encodedId, {
     httpOnly: true,
-    secure:true,
+    secure: true,
   }).status(200).send();
 });
 
 app.get("/api/getdetails", (req, res) => {
   const { id } = req.cookies;
-  if(!id){
-    res.status(404).send({message: "No Cookie"});
-  }else{
-    const user=getdetails(Number(id))
+  if (!id) {
+    return res.status(404).send({ message: "No Cookie" });
+  }
+
+  try {
+    const decodedId = base64Decode(id);
+    const user = getdetails(Number(decodedId));
+
     if (user) {
-      res.status(200).json({user: user});
+      res.status(200).json({ user: user });
     } else {
-      res.status(404).send({message: "User not found"});
+      res.status(404).send({ message: "User not found" });
     }
+  } catch (err) {
+    res.status(400).send({ message: "Invalid cookie" });
   }
 });
 
-app.get("/api/allusers",(req,res)=>{
-  res.json(users)
-})
+
+app.get("/api/allusers", (req, res) => {
+  res.json(users);
+});
 
 app.listen(3000, () => {
   console.log("Server is running at 3000");
